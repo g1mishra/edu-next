@@ -14,7 +14,6 @@ import { RelatedTopics } from "./RelatedTopics";
 interface ExploreViewProps {
   initialQuery?: string;
   onError: (message: string) => void;
-  onRelatedQueryClick?: (query: string) => void;
   userContext: UserContext;
 }
 
@@ -24,19 +23,14 @@ interface Conversation {
   timestamp: number;
 }
 
-export const ExploreView: React.FC<ExploreViewProps> = ({
-  initialQuery,
-  onError,
-  onRelatedQueryClick,
-  userContext,
-}) => {
+export const ExploreView: React.FC<ExploreViewProps> = ({ initialQuery, onError, userContext }) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [currentConversationId, setCurrentConversationId] = useState<string>("");
   const [showInitialSearch, setShowInitialSearch] = useState(!initialQuery);
   const [isLoading, setIsLoading] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const currentConversationIdRef = useRef<string>("");
 
   const scrollToTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -71,7 +65,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
 
   const createNewConversation = useCallback(() => {
     const newId = Date.now().toString();
-    setCurrentConversationId(newId);
+    currentConversationIdRef.current = newId;
     return newId;
   }, []);
 
@@ -83,6 +77,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
         setIsLoading(true);
 
         const currentId = conversationId || createNewConversation();
+        currentConversationIdRef.current = currentId;
         const currentTime = Date.now();
         const newMessage = { type: "user", content: query, timestamp: currentTime } as Message;
         const aiMessage = { type: "ai", content: "", timestamp: currentTime } as Message;
@@ -124,8 +119,25 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
           );
         });
       } catch (error) {
-        console.error("Search error:", error);
-        onError(error instanceof Error ? error.message : "Failed to load content");
+        let message = "Failed to load content";
+        if (error instanceof Error) {
+          if (error.message.includes("Rate limit exceeded")) {
+            message = "You've reached the rate limit. Please try again later.";
+          }
+        }
+        onError(message);
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === currentConversationIdRef.current
+              ? {
+                  ...c,
+                  messages: c.messages.map((m, i) =>
+                    i === c.messages.length - 1 ? { ...m, content: message } : m
+                  ),
+                }
+              : c
+          )
+        );
       } finally {
         setIsLoading(false);
       }
@@ -136,10 +148,9 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
   const handleRelatedQueryClick = useCallback(
     (query: string) => {
       scrollToTop();
-      onRelatedQueryClick?.(query);
-      handleSearch(query, currentConversationId);
+      handleSearch(query, currentConversationIdRef.current);
     },
-    [handleSearch, onRelatedQueryClick, scrollToTop, currentConversationId]
+    [handleSearch, scrollToTop]
   );
 
   useEffect(() => {
@@ -268,7 +279,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
           <div className="sticky bottom-0 bg-gradient-to-t from-background via-background to-transparent pb-4 pt-6">
             <div className="w-full px-2 sm:px-4 max-w-3xl mx-auto">
               <SearchBar
-                onSearch={(query) => handleSearch(query, currentConversationId)}
+                onSearch={(query) => handleSearch(query, currentConversationIdRef.current)}
                 placeholder="Ask a follow-up question..."
                 centered={false}
                 className="bg-gray-900/80 backdrop-blur-lg border border-gray-700/50 h-12 shadow-lg"

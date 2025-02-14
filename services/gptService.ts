@@ -320,8 +320,8 @@ export class GPTService {
       let parsedContent: Question;
       try {
         parsedContent = JSON.parse(content);
-      } catch (error) {
-        console.error("JSON Parse Error:", error);
+      } catch {
+        console.error("JSON Parse Error");
         throw new Error("Invalid JSON response");
       }
 
@@ -421,8 +421,7 @@ export class GPTService {
       try {
         parsed = JSON.parse(content);
         console.log("Successfully parsed JSON response");
-      } catch (error) {
-        console.error("JSON parse error:", error);
+      } catch {
         console.log("Raw content:", content);
         throw new Error("Failed to parse API response");
       }
@@ -703,9 +702,8 @@ export class GPTService {
                   });
                 }
               }
-            } catch (error) {
-              // Continue accumulating if parsing fails
-              console.debug("JSON parse error:", error);
+            } catch {
+              console.debug("JSON parse error");
             }
           } else {
             mainContent += content;

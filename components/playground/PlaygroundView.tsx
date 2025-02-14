@@ -100,7 +100,9 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({
         return await api.getQuestion(searchQuery, 1, userContext);
       } catch (error) {
         console.error("Error loading question:", error);
-        onError("Failed to generate question. Please try again.");
+        onError(
+          error instanceof Error ? error.message : "An error occurred while loading the question."
+        );
         return null;
       }
     },

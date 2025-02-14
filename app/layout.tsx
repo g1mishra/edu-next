@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { GoogleTagManager } from "@next/third-parties/google";
 import { GTM_PageView } from "@/components/gtm";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -57,6 +58,7 @@ export default function RootLayout({
       >
         <GoogleTagManager gtmId="GTM-KGSTMP74" />
         <GTM_PageView />
+        <Toaster />
         {children}
       </body>
     </html>

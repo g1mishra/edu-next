@@ -7,8 +7,15 @@ import { toast } from "sonner";
 export default function PlaygroundPage() {
   const { age } = useUserStore();
 
-  const handleError = (message: string) => {
-    toast.error(message);
+  const handleError = (error: string) => {
+    if (error.includes("Rate limit exceeded")) {
+      toast.error("You've reached the rate limit. Please try again later.", {
+        description: error,
+        duration: 5000,
+      });
+    } else {
+      toast.error(error);
+    }
   };
 
   const handleSuccess = (message: string) => {
