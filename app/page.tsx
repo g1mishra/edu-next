@@ -22,7 +22,7 @@ export default function Home() {
   };
 
   if (!hasHydrated) return <Loading fullScreen />;
-  if (age && age > 0) return null;
+  if (age && age > 0) return <Loading fullScreen />;
   return (
     <div className="min-h-screen">
       <Onboard onSubmit={handleSubmit} />
