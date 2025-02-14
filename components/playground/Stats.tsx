@@ -1,13 +1,20 @@
-import { Trophy, Timer, Target, Award } from "lucide-react";
+import { Trophy, Timer, Target, Award, Heart, HeartCrack } from "lucide-react";
 
 interface StatsProps {
   accuracy: number;
   questions: number;
   streak: number;
   currentTime: number;
+  hearts: number;
 }
 
-export const Stats: React.FC<StatsProps> = ({ accuracy, questions, streak, currentTime }) => {
+export const Stats: React.FC<StatsProps> = ({
+  accuracy,
+  questions,
+  streak,
+  currentTime,
+  hearts,
+}) => {
   const formatAccuracy = (acc: number): number => Math.round(acc);
 
   return (
@@ -42,6 +49,20 @@ export const Stats: React.FC<StatsProps> = ({ accuracy, questions, streak, curre
           <Timer className="w-5 h-5 text-purple-500" />
         </div>
         <span className="stats-label">Time</span>
+      </div>
+
+      <div className="card">
+        <div className="flex items-center gap-2">
+          {[...Array(3)].map((_, i) => (
+            <span key={i} className="text-xl">
+              {i < hearts ? (
+                <Heart className="text-red-500" />
+              ) : (
+                <HeartCrack className="text-gray-300" />
+              )}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );

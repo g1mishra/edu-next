@@ -22,7 +22,6 @@ const Onboard: React.FC<OnboardProps> = ({ onSubmit }) => {
 
   const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Allow empty string or valid numbers
     if (value === "" || /^\d{1,3}$/.test(value)) {
       setAge(value);
     }

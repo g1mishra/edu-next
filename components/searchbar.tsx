@@ -1,6 +1,5 @@
-// src/components/shared/SearchBar.tsx
 import React, { useState, KeyboardEvent, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion"; // You'll need to install framer-motion
+import { motion, AnimatePresence } from "framer-motion";
 
 interface SearchBarProps {
   placeholder?: string;
@@ -29,7 +28,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
-    // Load recent searches from localStorage
     const saved = localStorage.getItem("recentSearches");
     if (saved) {
       setRecentSearches(JSON.parse(saved));
@@ -42,15 +40,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
   const handleSearch = (searchQuery: string) => {
     if (searchQuery.trim()) {
-      // Save to recent searches
-      const updated = [
-        searchQuery,
-        ...recentSearches.filter((s) => s !== searchQuery),
-      ].slice(0, 3);
+      const updated = [searchQuery, ...recentSearches.filter((s) => s !== searchQuery)].slice(0, 3);
       setRecentSearches(updated);
       localStorage.setItem("recentSearches", JSON.stringify(updated));
       onSearch(searchQuery.trim());
-      setQuery(''); // Clear the input after search
+      setQuery("");
     }
   };
 
@@ -67,7 +61,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     setShowSuggestions(false);
   };
 
-  // Add keyboard shortcut (Cmd/Ctrl + K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -81,9 +74,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   }, []);
 
   return (
-    <div
-      className={`w-full max-w-3xl ${centered ? "mx-auto text-center" : ""}`}
-    >
+    <div className={`w-full max-w-3xl ${centered ? "mx-auto text-center" : ""}`}>
       {centered && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -109,7 +100,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             }}
             onBlur={() => {
               setIsFocused(false);
-              // Delay hiding suggestions to allow clicking them
               setTimeout(() => setShowSuggestions(false), 200);
             }}
             placeholder={placeholder}
@@ -119,15 +109,12 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               focus:outline-none focus:ring-2 focus:ring-primary/20
               transition-all duration-300 ease-in-out
               hover:bg-gray-800/90 hover:border-gray-600/50
-              ${
-                isFocused ? "border-primary/50 shadow-lg shadow-primary/10" : ""
-              }
+              ${isFocused ? "border-primary/50 shadow-lg shadow-primary/10" : ""}
               transform ${isFocused ? "scale-[1.02]" : "scale-100"}
               ${className}`}
           />
         </motion.div>
 
-        {/* Icons */}
         <div className="absolute inset-y-0 right-0 pr-4 flex items-center space-x-3">
           {query && (
             <motion.button
@@ -136,12 +123,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               onClick={() => setQuery("")}
               className="text-gray-400 hover:text-gray-299 transition-all duration-200"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -155,12 +137,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             whileHover={{ scale: 1.1 }}
             className="text-gray-400 group-hover:text-primary transition-colors duration-200"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -171,7 +148,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           </motion.div>
         </div>
 
-        {/* Suggestions Dropdown */}
         <AnimatePresence>
           {showSuggestions && (isFocused || query) && (
             <motion.div
@@ -182,9 +158,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             >
               {recentSearches.length > 0 && (
                 <div className="px-4 py-2">
-                  <div className="text-xs text-gray-500 mb-2">
-                    Recent Searches
-                  </div>
+                  <div className="text-xs text-gray-500 mb-2">Recent Searches</div>
                   {recentSearches.map((search, idx) => (
                     <button
                       key={idx}
@@ -205,8 +179,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                     onClick={() => handleSuggestionClick(suggestion.text)}
                     className="w-full text-left px-2 py-2 text-gray-300 hover:bg-gray-700/50 rounded-lg transition-colors duration-150"
                   >
-                    <span className="mr-2">{suggestion.icon}</span>{" "}
-                    {suggestion.text}
+                    <span className="mr-2">{suggestion.icon}</span> {suggestion.text}
                   </button>
                 ))}
               </div>
@@ -222,9 +195,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           transition={{ delay: 0.3 }}
           className="mt-6 space-y-2"
         >
-         <p className="text-gray-400 text-sm"></p>
+          <p className="text-gray-400 text-sm"></p>
           <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
-           <span></span>  
+            <span></span>
             {suggestions.map(({ text, icon }, idx) => (
               <motion.button
                 key={idx}

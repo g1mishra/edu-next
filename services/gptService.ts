@@ -225,12 +225,58 @@ export class GPTService {
     }
   }
 
+  private calculateNextDifficulty(
+    currentDifficulty: number,
+    timeSpent: number,
+    wasCorrect: boolean
+  ): number {
+    const QUICK_TIME = 15; // seconds
+    const LONG_TIME = 45; // seconds
+
+    let adjustment = 0;
+
+    if (wasCorrect) {
+      if (timeSpent <= QUICK_TIME) {
+        adjustment = 0.5;
+      } else if (timeSpent <= LONG_TIME) {
+        adjustment = 0.3;
+      } else {
+        adjustment = 0.1;
+      }
+    } else {
+      if (timeSpent >= LONG_TIME) {
+        adjustment = -0.5;
+      } else if (timeSpent >= QUICK_TIME) {
+        adjustment = -0.3;
+      } else {
+        adjustment = -0.2;
+      }
+    }
+
+    const newDifficulty = Math.max(1, Math.min(5, currentDifficulty + adjustment));
+    return Number(newDifficulty.toFixed(1));
+  }
+
   async getPlaygroundQuestion(
     topic: string,
-    level: number,
-    userContext: UserContext
+    currentDifficulty: number,
+    userContext: UserContext,
+    previousPerformance?: {
+      timeSpent: number;
+      wasCorrect: boolean;
+    }
   ): Promise<Question> {
     try {
+      let targetDifficulty = currentDifficulty;
+
+      if (previousPerformance) {
+        targetDifficulty = this.calculateNextDifficulty(
+          currentDifficulty,
+          previousPerformance.timeSpent,
+          previousPerformance.wasCorrect
+        );
+      }
+
       const aspects = [
         "core_concepts",
         "applications",
@@ -254,7 +300,7 @@ export class GPTService {
             "correct": "Brief explanation of why the correct answer is right (max 15 words)",
             "key_point": "One key concept to remember (max 10 words)"
           },
-          "difficulty": ${level},
+          "difficulty": ${targetDifficulty},
           "topic": "${topic}",
           "subtopic": "specific subtopic",
           "questionType": "conceptual",
@@ -292,7 +338,7 @@ export class GPTService {
 
         ENSURE HIGH ENTROPY:
         - Randomize question patterns
-        - Vary difficulty within level ${level}
+        - Vary difficulty within level ${targetDifficulty}
         - Mix theoretical and practical aspects
         - Use different companies/technologies as examples
         - Include various ${topic} scenarios
@@ -305,7 +351,7 @@ export class GPTService {
         - No redundant information
         - Maximum 25 words total`;
 
-      const userPrompt = `Create a completely unique ${level}/10 difficulty question about ${topic}.
+      const userPrompt = `Create a completely unique ${targetDifficulty}/5 difficulty question about ${topic}.
         Focus on ${selectedAspect.replace("_", " ")}.
         Ensure the correct answer is randomly placed.
         Make it engaging for a ${userContext.age} year old student.
@@ -337,7 +383,7 @@ export class GPTService {
           correct: shuffled.explanation?.correct || "Correct answer explanation",
           key_point: shuffled.explanation?.key_point || "Key learning point",
         },
-        difficulty: level,
+        difficulty: targetDifficulty,
         topic: topic,
         subtopic: parsedContent.subtopic || topic,
         questionType: "conceptual",
@@ -681,7 +727,6 @@ export class GPTService {
                     });
                   }
 
-                  // Process questions if available
                   if (parsed.questions && Array.isArray(parsed.questions)) {
                     parsed.questions.forEach((question: any) => {
                       if (!currentQuestions.some((q) => q.question === question.text)) {
@@ -694,7 +739,6 @@ export class GPTService {
                     });
                   }
 
-                  // Send update with current state
                   onChunk({
                     text: mainContent.trim(),
                     topics: currentTopics.length > 0 ? currentTopics : undefined,
@@ -725,7 +769,6 @@ export class GPTService {
           throw new Error(`Failed to stream content after ${maxRetries} attempts. ${errorMessage}`);
         }
 
-        // Wait before retrying (exponential backoff)
         await new Promise((resolve) => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
       }
     }

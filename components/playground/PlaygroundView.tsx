@@ -1,11 +1,12 @@
 "use client";
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Question, UserContext } from "@/types";
-import { Loading } from "../loading";
-import { Stats } from "./Stats";
-import { SearchSection } from "./SearchSection";
-import { QuestionCard } from "./QuestionCard";
 import { api } from "@/services/api";
+import { Question, UserContext } from "@/types";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Loading } from "../loading";
+import { QuestionCard } from "./QuestionCard";
+import { SearchSection } from "./SearchSection";
+import { Stats } from "./Stats";
+import { SummaryCard } from "./SummaryCard";
 
 interface PlaygroundViewProps {
   initialQuery?: string;
@@ -18,6 +19,7 @@ interface SessionStats {
   totalQuestions: number;
   sessionLimit: number;
   isSessionComplete: boolean;
+  hearts: number;
 }
 
 interface QuestionStats {
@@ -26,6 +28,7 @@ interface QuestionStats {
   streak: number;
   bestStreak: number;
   avgTime: number;
+  currentDifficulty: number;
 }
 
 export const PlaygroundView: React.FC<PlaygroundViewProps> = ({
@@ -50,7 +53,8 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({
   const [sessionStats, setSessionStats] = useState<SessionStats>({
     totalQuestions: 0,
     sessionLimit: 25,
-    isSessionComplete: false,
+    isSessionComplete: true,
+    hearts: 0,
   });
 
   const [stats, setStats] = useState<QuestionStats>({
@@ -59,6 +63,7 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({
     streak: 0,
     bestStreak: 0,
     avgTime: 0,
+    currentDifficulty: 1,
   });
 
   const COUNTDOWN_DURATION = 5;
@@ -66,7 +71,6 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({
   const isPausedRef = useRef(isPaused);
   const lastTickRef = useRef(Date.now());
 
-  // Update ref when isPaused changes
   useEffect(() => {
     isPausedRef.current = isPaused;
   }, [isPaused]);
@@ -82,7 +86,7 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({
 
       if (!isPausedRef.current && elapsed >= 1000) {
         setCurrentQuestionTime((prev) => prev + 1);
-        lastTickRef.current = now - (elapsed % 1000); // Maintain sub-second precision
+        lastTickRef.current = now - (elapsed % 1000);
       }
 
       animationFrameRef.current = requestAnimationFrame(updateTimer);
@@ -93,11 +97,19 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({
   }, []);
 
   const loadQuestion = useCallback(
-    async (searchQuery: string) => {
+    async (
+      searchQuery: string,
+      previousPerformance?: { timeSpent: number; wasCorrect: boolean }
+    ) => {
       if (!searchQuery) return null;
 
       try {
-        return await api.getQuestion(searchQuery, 1, userContext);
+        return await api.getQuestion(
+          searchQuery,
+          stats.currentDifficulty,
+          userContext,
+          previousPerformance
+        );
       } catch (error) {
         console.error("Error loading question:", error);
         onError(
@@ -106,7 +118,7 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({
         return null;
       }
     },
-    [userContext, onError]
+    [userContext, onError, stats.currentDifficulty]
   );
 
   const updateStats = useCallback(
@@ -122,6 +134,7 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({
           streak: newStreak,
           bestStreak: Math.max(prev.bestStreak, newStreak),
           avgTime: (prev.avgTime * prev.questions + currentQuestionTime) / newQuestions,
+          currentDifficulty: prev.currentDifficulty,
         };
       });
     },
@@ -145,9 +158,23 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({
   const handleAnswer = async (index: number) => {
     if (selectedAnswer !== null || !currentQuestion) return;
 
+    const isCorrect = index === currentQuestion.correctAnswer;
     setSelectedAnswer(index);
     setShowExplanation(true);
-    updateStats(index === currentQuestion.correctAnswer);
+    updateStats(isCorrect);
+
+    if (!isCorrect) {
+      setSessionStats((prev) => ({
+        ...prev,
+        hearts: prev.hearts - 1,
+        isSessionComplete: prev.hearts <= 1,
+      }));
+
+      if (sessionStats.hearts <= 1) {
+        onError("You've run out of hearts! Start a new session to continue practicing.");
+        return;
+      }
+    }
 
     if (!isPaused && !sessionStats.isSessionComplete) {
       startCountdown();
@@ -173,11 +200,13 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({
             streak: 0,
             bestStreak: 0,
             avgTime: 0,
+            currentDifficulty: firstQuestion.difficulty,
           });
           setSessionStats({
             totalQuestions: 0,
             sessionLimit: 25,
             isSessionComplete: false,
+            hearts: 3,
           });
         }
       }
@@ -205,49 +234,56 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({
     };
   }, [isPaused, startQuestionTimer]);
 
+  const loadNextQuestion = async () => {
+    if (sessionStats.totalQuestions >= sessionStats.sessionLimit) {
+      setSessionStats((prev) => ({ ...prev, isSessionComplete: true }));
+      onSuccess("Congratulations! You've completed your practice session! 🎉");
+      return;
+    }
+
+    setIsLoadingNext(true);
+    try {
+      const timeSpent = currentQuestionTime;
+      const wasCorrect = currentQuestion && selectedAnswer === currentQuestion.correctAnswer;
+
+      const nextQuestion = await loadQuestion(query, {
+        timeSpent,
+        wasCorrect: !!wasCorrect,
+      });
+
+      if (nextQuestion) {
+        setCurrentQuestion(nextQuestion);
+        setSelectedAnswer(null);
+        setShowExplanation(false);
+        setCurrentQuestionTime(0);
+        setSessionStats((prev) => ({
+          ...prev,
+          totalQuestions: prev.totalQuestions + 1,
+        }));
+
+        setStats((prev) => ({
+          ...prev,
+          currentDifficulty: nextQuestion.difficulty,
+        }));
+      }
+    } finally {
+      setIsLoadingNext(false);
+    }
+  };
+
   useEffect(() => {
     if (nextQuestionCountdown === null && showExplanation && !isPaused) {
-      const loadNextQuestion = async () => {
-        if (sessionStats.totalQuestions >= sessionStats.sessionLimit) {
-          setSessionStats((prev) => ({ ...prev, isSessionComplete: true }));
-          onSuccess("Congratulations! You've completed your practice session! 🎉");
-          return;
-        }
-
-        setIsLoadingNext(true);
-        try {
-          const nextQuestion = await loadQuestion(query);
-          if (nextQuestion) {
-            setCurrentQuestion(nextQuestion);
-            setSelectedAnswer(null);
-            setShowExplanation(false);
-            setSessionStats((prev) => ({
-              ...prev,
-              totalQuestions: prev.totalQuestions + 1,
-            }));
-          }
-        } finally {
-          setIsLoadingNext(false);
-        }
-      };
-
       loadNextQuestion();
     }
-  }, [
-    nextQuestionCountdown,
-    showExplanation,
-    isPaused,
-    query,
-    sessionStats.totalQuestions,
-    sessionStats.sessionLimit,
-    loadQuestion,
-    onSuccess,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nextQuestionCountdown, showExplanation, isPaused]);
 
   useEffect(() => {
     if (initialQuery) {
+      console.log("initialQuery", initialQuery);
       handleSearch(initialQuery);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialQuery]);
 
   if (isLoading) {
@@ -260,8 +296,16 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({
 
   return (
     <div className="w-full min-h-[calc(100vh-9rem)] flex flex-col">
-      {!currentQuestion || sessionStats.isSessionComplete ? (
+      {!currentQuestion ? (
         <SearchSection onSearch={handleSearch} />
+      ) : sessionStats.isSessionComplete ? (
+        <div className="w-full max-w-3xl mx-auto px-4 py-8 flex-1 flex items-center">
+          <SummaryCard
+            stats={stats}
+            isOutOfHearts={sessionStats.hearts <= 0}
+            onStartNew={() => setCurrentQuestion(null)}
+          />
+        </div>
       ) : (
         <div className="w-full max-w-3xl mx-auto px-4">
           <Stats
@@ -269,6 +313,7 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({
             questions={stats.questions}
             streak={stats.streak}
             currentTime={currentQuestionTime}
+            hearts={sessionStats.hearts}
           />
           <QuestionCard
             question={currentQuestion}

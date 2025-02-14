@@ -1,10 +1,16 @@
 import { UserContext } from "@/types";
 
 export const api = {
-  async getQuestion(topic: string, level: number, userContext: UserContext) {
+  async getQuestion(
+    topic: string,
+    currentDifficulty: number,
+    userContext: UserContext,
+    previousPerformance?: { timeSpent: number; wasCorrect: boolean }
+  ) {
     const res = await fetch("/api/playground/generate", {
       method: "POST",
-      body: JSON.stringify({ topic, level, userContext }),
+      body: JSON.stringify({ topic, currentDifficulty, userContext, previousPerformance }),
+
       headers: { "Content-Type": "application/json" },
     });
 

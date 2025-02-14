@@ -6,21 +6,18 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
-// Create a new ratelimiter, that allows 15 requests per minute
 export const minuteLimiter = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(15, "1 m"),
   analytics: true,
 });
 
-// 250 requests per hour
 export const hourLimiter = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(250, "1 h"),
   analytics: true,
 });
 
-// 500 requests per day
 export const dayLimiter = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(500, "1 d"),

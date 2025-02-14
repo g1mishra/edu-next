@@ -177,7 +177,6 @@ export const ExploreView: React.FC<ExploreViewProps> = ({ initialQuery, onError,
 
             <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
               <span className="text-sm text-gray-400">Try:</span>
-              {/* Tailwind hack for dynamic color */}
               <span className="sr-only bg-purple-500/20 bg-blue-500/20 bg-green-500/20 bg-purple-500/30 bg-blue-500/30 bg-green-500/30 text-purple-300 text-blue-300 text-green-300" />
               {[
                 { text: "Quantum Physics", icon: "⚛️", color: "purple" },
