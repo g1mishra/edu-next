@@ -52,6 +52,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               {question.text}
             </h2>
             <button
+              disabled={nextQuestionCountdown !== null}
               onClick={onTogglePause}
               className="p-2.5 rounded-lg hover:bg-gray-700/50 active:bg-gray-700/70 transition-all duration-200 flex-shrink-0 
                 hover:scale-105 active:scale-95"
@@ -93,7 +94,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 
           {showExplanation && (
             <div className="mt-4 space-y-4 animate-fadeIn">
-              {!isPaused && nextQuestionCountdown !== null && (
+              {nextQuestionCountdown !== null && (
                 <div className="mb-4">
                   <div className="relative h-1.5 bg-gray-700 rounded-full overflow-hidden">
                     <div

@@ -149,11 +149,10 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({
           clearInterval(interval);
           return null;
         }
-        if (isPaused) return prev;
         return +(prev - 0.1).toFixed(1);
       });
     }, 100);
-  }, [isPaused]);
+  }, []);
 
   const handleAnswer = async (index: number) => {
     if (selectedAnswer !== null || !currentQuestion) return;
@@ -161,6 +160,7 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({
     const isCorrect = index === currentQuestion.correctAnswer;
     setSelectedAnswer(index);
     setShowExplanation(true);
+    setIsPaused(true);
     updateStats(isCorrect);
 
     if (!isCorrect) {
@@ -176,7 +176,7 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({
       }
     }
 
-    if (!isPaused && !sessionStats.isSessionComplete) {
+    if (!sessionStats.isSessionComplete) {
       startCountdown();
     }
   };
@@ -255,7 +255,7 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({
         setCurrentQuestion(nextQuestion);
         setSelectedAnswer(null);
         setShowExplanation(false);
-        setCurrentQuestionTime(0);
+        setIsPaused(false);
         setSessionStats((prev) => ({
           ...prev,
           totalQuestions: prev.totalQuestions + 1,
@@ -272,7 +272,7 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({
   };
 
   useEffect(() => {
-    if (nextQuestionCountdown === null && showExplanation && !isPaused) {
+    if (nextQuestionCountdown === null && showExplanation && isPaused) {
       loadNextQuestion();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
