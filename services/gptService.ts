@@ -648,6 +648,10 @@ export class GPTService {
         const currentQuestions: any[] = [];
         let isJsonSection = false;
 
+        if (!stream) {
+          throw new Error("Stream is undefined");
+        }
+
         for await (const chunk of stream) {
           const content = chunk.choices[0]?.delta?.content || "";
 
